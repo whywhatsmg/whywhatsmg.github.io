@@ -55,3 +55,4 @@ defaults:
 collections:
   authors:
     output: true
+theme: jekyll-theme-architect
