@@ -55,4 +55,4 @@ defaults:
 collections:
   authors:
     output: true
-theme: jekyll-theme-architect
+theme: jekyll-theme-cayman
