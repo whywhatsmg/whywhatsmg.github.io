@@ -1,302 +1,1631 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>鲜果拍 - 智能水果拍卖平台</title>
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智拍鲜果 - 线上拍卖交易平台</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 428px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 20px;
+            color: white;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+        }
+
+        .header .stat-item {
+            text-align: center;
+        }
+
+        .header .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .header .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: #f8f9fa;
+            padding: 10px;
+            gap: 10px;
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: white;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .nav-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 20px;
+            animation: fadeIn 0.5s;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 拍卖品卡片样式 */
+        .auction-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+
+        .auction-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            border-color: #667eea;
+        }
+
+        .auction-card.hot {
+            border-color: #f5576c;
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe9e9 100%);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .card-badge {
+            background: #f5576c;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .card-badge.normal {
+            background: #667eea;
+        }
+
+        .card-badge.success {
+            background: #28a745;
+        }
+
+        .fruit-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .fruit-image {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .grade-display {
+            display: flex;
+            align-items: center;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .grade-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: white;
+            margin-right: 10px;
+        }
+
+        .grade-a { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .grade-b { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .grade-c { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+
+        .grade-info {
+            flex: 1;
+        }
+
+        .grade-label {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .grade-value {
+            font-size: 14px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .data-charts {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .data-item {
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .data-label {
+            font-size: 10px;
+            color: #999;
+            margin-bottom: 5px;
+        }
+
+        .data-value {
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .data-value.good { color: #28a745; }
+        .data-value.warning { color: #ffc107; }
+        .data-value.danger { color: #dc3545; }
+
+        .price-section {
+            background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%);
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .price-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .price-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .price-label {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .price-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #f5576c;
+        }
+
+        .countdown {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #f5576c;
+            font-weight: bold;
+        }
+
+        .bid-section {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .bid-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .bid-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .bid-btn {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .bid-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .bid-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 用户信息页面样式 */
+        .user-info-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .user-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .user-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-right: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .user-details {
+            flex: 1;
+        }
+
+        .user-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .user-phone {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .user-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .stat-box {
+            text-align: center;
+        }
+
+        .stat-box .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .stat-box .stat-label {
+            font-size: 11px;
+            opacity: 0.9;
+        }
+
+        .my-bids-section {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+        }
+
+        .my-bids-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .my-bid-item {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            border-left: 4px solid #667eea;
+        }
+
+        .my-bid-item.won {
+            border-left-color: #28a745;
+        }
+
+        .my-bid-item.lost {
+            border-left-color: #f5576c;
+        }
+
+        .my-bid-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .my-bid-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .my-bid-status {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            background: #667eea;
+            color: white;
+        }
+
+        .my-bid-status.won {
+            background: #28a745;
+        }
+
+        .my-bid-status.lost {
+            background: #f5576c;
+        }
+
+        .my-bid-status.active {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .my-bid-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .my-bid-detail-item {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .my-bid-detail-item strong {
+            color: #333;
+            font-weight: normal;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        /* 登录注册表单样式 */
+        .auth-container {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 30px 20px;
+            border-radius: 20px;
+            margin-top: 20px;
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .auth-header h2 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .form-group label span.required {
+            color: #f5576c;
+            margin-left: 4px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            font-size: 15px;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-input.error {
+            border-color: #f5576c;
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        .error-message {
+            color: #f5576c;
+            font-size: 12px;
+            margin-top: 6px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .auth-link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* 通用组件样式 */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideIn 0.3s;
+        }
+
+        .notification.success {
+            background: #28a745;
+        }
+
+        .notification.error {
+            background: #dc3545;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .welcome-empty {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .welcome-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .welcome-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 14px;
+            background: white;
+            color: #f5576c;
+            border: 2px solid #f5576c;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+
+        .logout-btn:hover {
+            background: #f5576c;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(245, 87, 108, 0.3);
+        }
+    </style>
 </head>
 <body>
-  <!-- 顶部导航 -->
-  <header class="header">
-    <div class="header-left">
-      <div class="logo">
-        <span class="logo-icon">&#x1F34E;</span>
-        <span class="logo-text">鲜果拍</span>
-      </div>
-    </div>
-    <div class="header-right">
-      <button class="icon-btn" onclick="showNotifications()">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M18 8C18 6.4087 17.3679 4.88258 16.2426 3.75736C15.1174 2.63214 13.5913 2 12 2C10.4087 2 8.88258 2.63214 7.75736 3.75736C6.63214 4.88258 6 6.4087 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M13.73 21C13.5542 21.3031 13.3019 21.5547 12.9982 21.7295C12.6946 21.9044 12.3504 21.9965 12 21.9965C11.6496 21.9965 11.3054 21.9044 11.0018 21.7295C10.6982 21.5547 10.4458 21.3031 10.27 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <button class="icon-btn" onclick="showProfile()">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-    </div>
-  </header>
-
-  <!-- 主内容区 -->
-  <main class="main-content">
-    <!-- 首页 -->
-    <section id="homePage" class="page active">
-      <!-- 搜索栏 -->
-      <div class="search-bar">
-        <div class="search-input-wrapper">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
-            <path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-          <input type="text" placeholder="搜索水果品类、批次号..." id="searchInput">
-        </div>
-      </div>
-
-      <!-- 轮播横幅 -->
-      <div class="banner-slider">
-        <div class="banner-track" id="bannerTrack">
-          <div class="banner-slide">
-            <img src="https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=800&h=300&fit=crop" alt="新鲜水果">
-            <div class="banner-content">
-              <h3>优质水果 在线竞拍</h3>
-              <p>源头直供 品质保障</p>
+    <div class="container">
+        <div class="header">
+            <h1>🍎 智拍鲜果</h1>
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalAuctions">0</div>
+                    <div class="stat-label">正在拍卖</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="totalUsers">0</div>
+                    <div class="stat-label">注册用户</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="totalBids">0</div>
+                    <div class="stat-label">今日竞价</div>
+                </div>
             </div>
-          </div>
-          <div class="banner-slide">
-            <img src="https://images.unsplash.com/photo-1568702846914-96b305d3aa86?w=800&h=300&fit=crop" alt="拍卖现场">
-            <div class="banner-content">
-              <h3>智能分级 溯源可查</h3>
-              <p>每批水果 全程透明</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('auctions')">🔥 拍卖大厅</button>
+            <button class="nav-tab" onclick="switchTab('auth')">👤 我的账户</button>
+        </div>
+
+        <div id="auctions-tab" class="tab-content active">
+            <div id="auctionList"></div>
+        </div>
+
+        <div id="auth-tab" class="tab-content">
+            <div id="welcomeSection" class="welcome-empty">
+                <div class="welcome-icon">👋</div>
+                <h3 class="welcome-title">欢迎来到智拍鲜果</h3>
+                <p style="color: #666; margin-bottom: 25px;">注册成为采购商，参与优质鲜果拍卖</p>
+                <button class="submit-btn" onclick="showLoginForm()" style="margin-bottom: 10px;">立即登录</button>
+                <button class="submit-btn" onclick="showRegisterForm()" style="background: white; color: #667eea; border: 2px solid #667eea;">注册账户</button>
             </div>
-          </div>
-          <div class="banner-slide">
-            <img src="https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=800&h=300&fit=crop" alt="水果检测">
-            <div class="banner-content">
-              <h3>实时竞价 公平交易</h3>
-              <p>远程参与 轻松竞标</p>
+
+            <div id="loginForm" class="auth-container" style="display: none;">
+                <div class="auth-header">
+                    <h2>🔐 用户登录</h2>
+                    <p>使用您的手机号和密码登录账户</p>
+                </div>
+                <form onsubmit="event.preventDefault(); handleLogin();">
+                    <div class="form-group">
+                        <label>手机号<span class="required">*</span></label>
+                        <input type="tel" class="form-input" id="loginPhone" placeholder="请输入手机号" maxlength="11">
+                    </div>
+
+                    <div class="form-group">
+                        <label>密码<span class="required">*</span></label>
+                        <input type="password" class="form-input" id="loginPassword" placeholder="请输入密码">
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="loginBtn">立即登录</button>
+                </form>
+
+                <div class="auth-footer">
+                    <p>还没有账号？<a class="auth-link" onclick="showRegisterForm()">立即注册</a></p>
+                </div>
             </div>
-          </div>
-        </div>
-        <div class="banner-dots" id="bannerDots"></div>
-      </div>
 
-      <!-- 快捷入口 -->
-      <div class="quick-entry">
-        <div class="entry-item" onclick="filterByCategory('all')">
-          <div class="entry-icon">&#x1F347;</div>
-          <span>全部</span>
-        </div>
-        <div class="entry-item" onclick="filterByCategory('apple')">
-          <div class="entry-icon">&#x1F34E;</div>
-          <span>苹果</span>
-        </div>
-        <div class="entry-item" onclick="filterByCategory('orange')">
-          <div class="entry-icon">&#x1F34A;</div>
-          <span>柑橘</span>
-        </div>
-        <div class="entry-item" onclick="filterByCategory('grape')">
-          <div class="entry-icon">&#x1F347;</div>
-          <span>葡萄</span>
-        </div>
-        <div class="entry-item" onclick="filterByCategory('peach')">
-          <div class="entry-icon">&#x1F351;</div>
-          <span>桃子</span>
-        </div>
-      </div>
+            <div id="registerForm" class="auth-container" style="display: none;">
+                <div class="auth-header">
+                    <h2>📝 新用户注册</h2>
+                    <p>填写信息成为采购商，开启鲜果拍卖之旅</p>
+                </div>
+                <form onsubmit="event.preventDefault(); handleRegister();">
+                    <div class="form-group">
+                        <label>采购商名称<span class="required">*</span></label>
+                        <input type="text" class="form-input" id="regName" placeholder="请输入您的公司或个人名称">
+                    </div>
 
-      <!-- 数据概览 -->
-      <div class="stats-bar">
-        <div class="stat-item">
-          <div class="stat-value" id="todayAuctions">128</div>
-          <div class="stat-label">今日拍卖</div>
+                    <div class="form-group">
+                        <label>手机号<span class="required">*</span></label>
+                        <input type="tel" class="form-input" id="regPhone" placeholder="请输入手机号" maxlength="11">
+                    </div>
+
+                    <div class="form-group">
+                        <label>设置密码<span class="required">*</span></label>
+                        <input type="password" class="form-input" id="regPassword" placeholder="请设置登录密码（至少8位，包含字母和数字）">
+                    </div>
+
+                    <div class="form-group">
+                        <label>确认密码<span class="required">*</span></label>
+                        <input type="password" class="form-input" id="regConfirmPassword" placeholder="请再次输入密码">
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="regBtn">注册账户</button>
+                </form>
+
+                <div class="auth-footer">
+                    <p>已有账号？<a class="auth-link" onclick="showLoginForm()">立即登录</a></p>
+                </div>
+            </div>
+
+            <div id="userInfo" style="display: none;">
+                <div class="user-info-card">
+                    <div class="user-header">
+                        <div class="user-avatar">👤</div>
+                        <div class="user-details">
+                            <div class="user-name" id="userName"></div>
+                            <div class="user-phone" id="userPhone"></div>
+                        </div>
+                    </div>
+                    <div class="user-stats">
+                        <div class="stat-box">
+                            <div class="stat-value">¥<span id="userBalance">0</span></div>
+                            <div class="stat-label">账户余额</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value" id="userBidCount">0</div>
+                            <div class="stat-label">竞价次数</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value" id="userSuccessCount">0</div>
+                            <div class="stat-label">成功拍下</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="my-bids-section">
+                    <h3>📊 我的竞价记录</h3>
+                    <div id="myBidsList"></div>
+                </div>
+
+                <button class="logout-btn" onclick="handleLogout()">
+                    🚪 退出登录
+                </button>
+            </div>
         </div>
-        <div class="stat-item">
-          <div class="stat-value" id="todayDeals">96</div>
-          <div class="stat-label">成交批次</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value" id="onlineUsers">2,458</div>
-          <div class="stat-label">在线人数</div>
-        </div>
-      </div>
-
-      <!-- 拍卖列表标题 -->
-      <div class="section-header">
-        <h2 class="section-title">正在拍卖</h2>
-        <span class="live-badge">LIVE</span>
-      </div>
-
-      <!-- 拍卖列表 -->
-      <div class="auction-list" id="auctionList"></div>
-    </section>
-
-    <!-- 拍卖详情页 -->
-    <section id="detailPage" class="page">
-      <div class="detail-header">
-        <button class="back-btn" onclick="goBack()">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <span class="detail-title">拍卖详情</span>
-        <button class="share-btn" onclick="shareAuction()">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="2"/>
-            <circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
-            <circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="2"/>
-            <path d="M8.59 13.51L15.42 17.49" stroke="currentColor" stroke-width="2"/>
-            <path d="M15.41 6.51L8.59 10.49" stroke="currentColor" stroke-width="2"/>
-          </svg>
-        </button>
-      </div>
-
-      <div class="detail-content" id="detailContent">
-        <!-- 动态填充 -->
-      </div>
-    </section>
-
-    <!-- 竞价页面 -->
-    <section id="bidPage" class="page">
-      <div class="bid-header">
-        <button class="back-btn" onclick="goBack()">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <span class="bid-title">实时竞价</span>
-        <div class="countdown-badge" id="bidCountdown">05:00</div>
-      </div>
-
-      <div class="bid-content" id="bidContent">
-        <!-- 动态填充 -->
-      </div>
-    </section>
-  </main>
-
-  <!-- 底部导航 -->
-  <nav class="bottom-nav">
-    <a href="#" class="nav-item active" onclick="switchTab('home')">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M9 22V12H15V22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <span>首页</span>
-    </a>
-    <a href="#" class="nav-item" onclick="switchTab('auction')">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <span>大厅</span>
-    </a>
-    <a href="#" class="nav-item" onclick="switchTab('mybids')">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <span>我的竞价</span>
-    </a>
-    <a href="#" class="nav-item" onclick="switchTab('profile')">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-        <path d="M12 16V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        <path d="M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-      <span>我的</span>
-    </a>
-  </nav>
-
-  <!-- 通知弹窗 -->
-  <div class="modal" id="notificationModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>通知中心</h3>
-        <button class="close-btn" onclick="closeModal('notificationModal')">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="notification-item">
-          <div class="notif-icon success">&#x2713;</div>
-          <div class="notif-content">
-            <p class="notif-title">竞价成功</p>
-            <p class="notif-desc">您已成功竞得批次 #A2024001 红富士苹果</p>
-            <span class="notif-time">2分钟前</span>
-          </div>
-        </div>
-        <div class="notification-item">
-          <div class="notif-icon warning">&#x1F514;</div>
-          <div class="notif-content">
-            <p class="notif-title">出价提醒</p>
-            <p class="notif-desc">批次 #A2024005 有人出价超过您的报价</p>
-            <span class="notif-time">15分钟前</span>
-          </div>
-        </div>
-        <div class="notification-item">
-          <div class="notif-icon info">&#x1F4E6;</div>
-          <div class="notif-content">
-            <p class="notif-title">新品上架</p>
-            <p class="notif-desc">阳光玫瑰葡萄新批次已上架，快来围观</p>
-            <span class="notif-time">1小时前</span>
-          </div>
-        </div>
-      </div>
     </div>
-  </div>
 
-  <!-- 个人中心弹窗 -->
-  <div class="modal" id="profileModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>个人中心</h3>
-        <button class="close-btn" onclick="closeModal('profileModal')">&times;</button>
-      </div>
-      <div class="modal-body profile-body">
-        <div class="profile-header-card">
-          <div class="avatar">&#x1F464;</div>
-          <div class="user-info">
-            <h4>采购商_张明</h4>
-            <p class="user-id">ID: BUY20240089</p>
-            <span class="user-badge">认证采购商</span>
-          </div>
-        </div>
-        <div class="profile-stats">
-          <div class="p-stat">
-            <span class="p-stat-val">12</span>
-            <span class="p-stat-label">成交</span>
-          </div>
-          <div class="p-stat">
-            <span class="p-stat-val">5</span>
-            <span class="p-stat-label">竞价中</span>
-          </div>
-          <div class="p-stat">
-            <span class="p-stat-val">98%</span>
-            <span class="p-stat-label">好评率</span>
-          </div>
-        </div>
-        <div class="profile-menu">
-          <div class="menu-item">
-            <span>&#x1F4CB;</span>
-            <span>我的订单</span>
-            <span class="arrow">&gt;</span>
-          </div>
-          <div class="menu-item">
-            <span>&#x1F4B0;</span>
-            <span>资金管理</span>
-            <span class="arrow">&gt;</span>
-          </div>
-          <div class="menu-item">
-            <span>&#x1F4E6;</span>
-            <span>物流跟踪</span>
-            <span class="arrow">&gt;</span>
-          </div>
-          <div class="menu-item">
-            <span>&#x2699;&#xFE0F;</span>
-            <span>设置</span>
-            <span class="arrow">&gt;</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+    <script>
+        let db;
+        let currentUser = null;
+        let countdownInterval = null;
 
-  <!-- 出价成功提示 -->
-  <div class="toast" id="bidSuccessToast">
-    <div class="toast-icon">&#x2705;</div>
-    <div class="toast-text">出价成功！当前最高价</div>
-  </div>
+        function log(message) {
+            console.log('[' + new Date().toLocaleTimeString() + ']', message);
+        }
 
-  <script src="app.js"></script>
+        async function initDB() {
+            log('开始初始化数据库...');
+            
+            try {
+                const SQL = await initSqlJs({
+                    locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
+                });
+                
+                db = new SQL.Database();
+                log('数据库对象创建成功');
+                
+                // 创建用户表
+                db.run(`
+                    CREATE TABLE users (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT NOT NULL,
+                        phone TEXT UNIQUE NOT NULL,
+                        password TEXT NOT NULL,
+                        balance REAL DEFAULT 100000,
+                        bid_count INTEGER DEFAULT 0,
+                        success_count INTEGER DEFAULT 0,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                `);
+                log('用户表创建成功');
+
+                // 创建拍卖品表
+                db.run(`
+                    CREATE TABLE auctions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT NOT NULL,
+                        grade TEXT NOT NULL,
+                        base_price REAL NOT NULL,
+                        current_price REAL NOT NULL,
+                        image_url TEXT,
+                        description TEXT,
+                        sweetness REAL,
+                        acidity REAL,
+                        firmness REAL,
+                        origin TEXT,
+                        farmer TEXT,
+                        harvest_date TEXT,
+                        trace_code TEXT,
+                        status TEXT DEFAULT 'active',
+                        end_time DATETIME,
+                        total_bids INTEGER DEFAULT 0,
+                        winner_id INTEGER,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                `);
+                log('拍卖品表创建成功');
+
+                // 创建出价表
+                db.run(`
+                    CREATE TABLE bids (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        auction_id INTEGER NOT NULL,
+                        user_id INTEGER NOT NULL,
+                        amount REAL NOT NULL,
+                        bid_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (auction_id) REFERENCES auctions(id),
+                        FOREIGN KEY (user_id) REFERENCES users(id)
+                    )
+                `);
+                log('出价表创建成功');
+                
+                // 插入示例数据
+                insertSampleData();
+                
+                // 更新统计数据
+                updateStats();
+                
+                // 启动倒计时定时器
+                startCountdownTimer();
+                
+                log('数据库初始化完成');
+            } catch (error) {
+                log('❌ 数据库初始化失败: ' + error.message);
+                showNotification('系统初始化失败：' + error.message, 'error');
+            }
+        }
+
+        function insertSampleData() {
+            log('插入示例数据...');
+            
+            // 插入示例拍卖品
+            const sampleAuctions = [
+                {
+                    name: '精品红富士苹果',
+                    grade: 'A',
+                    base_price: 8.5,
+                    current_price: 8.5,
+                    image_url: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=400',
+                    description: '来自山东烟台的优质红富士，果形端正，色泽鲜艳',
+                    sweetness: 85,
+                    acidity: 15,
+                    firmness: 90,
+                    origin: '山东烟台',
+                    farmer: '张果农',
+                    harvest_date: '2024-03-20',
+                    trace_code: 'SF202403200001'
+                },
+                {
+                    name: '海南妃子笑荔枝',
+                    grade: 'A',
+                    base_price: 25.0,
+                    current_price: 25.0,
+                    image_url: 'https://images.unsplash.com/photo-1596547609652-9cf5d8d76921?w=400',
+                    description: '海南产地直供，新鲜采摘，甜度极高',
+                    sweetness: 92,
+                    acidity: 18,
+                    firmness: 75,
+                    origin: '海南海口',
+                    farmer: '李种植户',
+                    harvest_date: '2024-03-18',
+                    trace_code: 'LZ202403180001'
+                },
+                {
+                    name: '新疆哈密瓜',
+                    grade: 'B',
+                    base_price: 6.0,
+                    current_price: 6.0,
+                    image_url: 'https://images.unsplash.com/photo-1615486511484-92e172cc416d?w=400',
+                    description: '新疆哈密特产，口感香甜，品质上乘',
+                    sweetness: 88,
+                    acidity: 12,
+                    firmness: 82,
+                    origin: '新疆哈密',
+                    farmer: '王农业',
+                    harvest_date: '2024-03-15',
+                    trace_code: 'HM202403150001'
+                },
+                {
+                    name: '云南蓝莓',
+                    grade: 'A',
+                    base_price: 35.0,
+                    current_price: 35.0,
+                    image_url: 'https://images.unsplash.com/photo-1498557850523-fd3d118b962e?w=400',
+                    description: '云南高原种植，有机无农药，果实饱满',
+                    sweetness: 78,
+                    acidity: 20,
+                    firmness: 85,
+                    origin: '云南昆明',
+                    farmer: '赵农户',
+                    harvest_date: '2024-03-19',
+                    trace_code: 'LM202403190001'
+                }
+            ];
+
+            sampleAuctions.forEach(auction => {
+                const endTime = new Date();
+                endTime.setHours(endTime.getHours() + Math.floor(Math.random() * 48)); // 随机0-48小时后结束
+                
+                db.run(`
+                    INSERT INTO auctions 
+                    (name, grade, base_price, current_price, image_url, description, sweetness, acidity, firmness, 
+                     origin, farmer, harvest_date, trace_code, end_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `, [
+                    auction.name, auction.grade, auction.base_price, auction.current_price, 
+                    auction.image_url, auction.description, auction.sweetness, auction.acidity, 
+                    auction.firmness, auction.origin, auction.farmer, auction.harvest_date, 
+                    auction.trace_code, endTime.toISOString()
+                ]);
+            });
+            
+            log('拍卖品数据插入完成');
+            
+            // 插入示例用户
+            db.run(`INSERT INTO users (name, phone, password, balance) VALUES (?, ?, ?, ?)`,
+                ['演示用户', '13800138000', 'Demo@1234', 50000]);
+            log('演示用户创建完成');
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            if (tabName === 'auctions') {
+                document.querySelector('.nav-tab:nth-child(1)').classList.add('active');
+                document.getElementById('auctions-tab').classList.add('active');
+                renderAuctions();
+            } else if (tabName === 'auth') {
+                document.querySelector('.nav-tab:nth-child(2)').classList.add('active');
+                document.getElementById('auth-tab').classList.add('active');
+                updateAuthSection();
+            }
+        }
+
+        function updateAuthSection() {
+            const welcomeSection = document.getElementById('welcomeSection');
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const userInfo = document.getElementById('userInfo');
+
+            welcomeSection.style.display = 'none';
+            loginForm.style.display = 'none';
+            registerForm.style.display = 'none';
+            userInfo.style.display = 'none';
+
+            if (currentUser) {
+                userInfo.style.display = 'block';
+                updateUserInfo();
+            } else {
+                welcomeSection.style.display = 'block';
+            }
+        }
+
+        function updateUserInfo() {
+            if (!currentUser) return;
+            
+            document.getElementById('userName').textContent = currentUser.name;
+            document.getElementById('userPhone').textContent = currentUser.phone;
+            document.getElementById('userBalance').textContent = currentUser.balance.toLocaleString('zh-CN', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+            document.getElementById('userBidCount').textContent = currentUser.bid_count || 0;
+            document.getElementById('userSuccessCount').textContent = currentUser.success_count || 0;
+            
+            renderMyBids();
+        }
+
+        function showLoginForm() {
+            document.getElementById('welcomeSection').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'none';
+            document.getElementById('userInfo').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'block';
+        }
+
+        function showRegisterForm() {
+            document.getElementById('welcomeSection').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('userInfo').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'block';
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideIn 0.3s reverse forwards';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        function handleRegister() {
+            log('📝 开始处理注册请求...');
+            
+            const name = document.getElementById('regName').value.trim();
+            const phone = document.getElementById('regPhone').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = document.getElementById('regConfirmPassword').value;
+            
+            clearAllErrors();
+            
+            let hasError = false;
+            
+            if (!name || name.length > 20) {
+                showFieldError('regName', '请输入有效的公司或个人名称');
+                hasError = true;
+            }
+            
+            const phoneRegex = /^1[3-9]\d{9}$/;
+            if (!phone || !phoneRegex.test(phone)) {
+                showFieldError('regPhone', '请输入正确的11位手机号');
+                hasError = true;
+            }
+            
+            if (!password || password.length < 8 || !/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+                showFieldError('regPassword', '密码至少8位，包含字母和数字');
+                hasError = true;
+            }
+            
+            if (!confirmPassword || password !== confirmPassword) {
+                showFieldError('regConfirmPassword', '两次输入的密码不一致');
+                hasError = true;
+            }
+            
+            if (hasError) {
+                showNotification('请检查输入信息', 'error');
+                return;
+            }
+            
+            const btn = document.getElementById('regBtn');
+            btn.disabled = true;
+            btn.textContent = '注册中...';
+            
+            log('✅ 表单验证通过，开始插入数据库...');
+            
+            try {
+                db.run(`INSERT INTO users (name, phone, password) VALUES (?, ?, ?)`, 
+                    [name, phone, password], function(error) {
+                        if (error) {
+                            log('❌ 数据库插入错误: ' + error.message);
+                            if (error.message.includes('UNIQUE constraint')) {
+                                showFieldError('regPhone', '该手机号已被注册');
+                                showNotification('该手机号已被注册', 'error');
+                            } else {
+                                showNotification('注册失败：' + error.message, 'error');
+                            }
+                        } else {
+                            log('✅ 注册成功！用户ID: ' + this.lastID);
+                            showNotification('🎉 注册成功！系统已为您充值 100,000 元体验金', 'success');
+                            showLoginForm();
+                            updateStats();
+                        }
+                        btn.disabled = false;
+                        btn.textContent = '注册账户';
+                    });
+                
+            } catch (error) {
+                log('❌ 注册异常: ' + error.message);
+                showNotification('注册失败：' + error.message, 'error');
+                btn.disabled = false;
+                btn.textContent = '注册账户';
+            }
+        }
+
+        function showFieldError(fieldId, message) {
+            const field = document.getElementById(fieldId);
+            const errorId = fieldId + 'Error';
+            
+            let errorEl = document.getElementById(errorId);
+            if (!errorEl) {
+                errorEl = document.createElement('div');
+                errorEl.className = 'error-message';
+                errorEl.id = errorId;
+                field.parentNode.appendChild(errorEl);
+            }
+            
+            field.classList.add('error');
+            errorEl.textContent = message;
+            errorEl.classList.add('show');
+        }
+
+        function clearAllErrors() {
+            document.querySelectorAll('.error-message').forEach(el => el.classList.remove('show'));
+            document.querySelectorAll('.form-input').forEach(el => {
+                el.classList.remove('error', 'success');
+            });
+        }
+
+        function handleLogin() {
+            log('🔐 开始处理登录请求...');
+            
+            const phone = document.getElementById('loginPhone').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!phone || !password) {
+                showNotification('请填写手机号和密码', 'error');
+                return;
+            }
+            
+            const result = db.exec(`SELECT * FROM users WHERE phone = ? AND password = ?`, [phone, password]);
+            
+            if (result.length > 0 && result[0].values.length > 0) {
+                const columns = result[0].columns;
+                const row = result[0].values[0];
+                
+                currentUser = {};
+                columns.forEach((col, index) => {
+                    currentUser[col] = row[index];
+                });
+                
+                log('✅ 登录成功！用户: ' + currentUser.name);
+                showNotification('🎊 欢迎回来，' + currentUser.name + '！', 'success');
+                updateAuthSection();
+                
+                document.getElementById('loginPhone').value = '';
+                document.getElementById('loginPassword').value = '';
+                
+            } else {
+                log('❌ 登录失败：手机号或密码错误');
+                showNotification('❌ 手机号或密码错误', 'error');
+            }
+        }
+
+        function handleLogout() {
+            if (confirm('确定要退出登录吗？')) {
+                log('👋 用户退出登录');
+                currentUser = null;
+                showNotification('已安全退出登录', 'success');
+                updateAuthSection();
+            }
+        }
+
+        function renderAuctions() {
+            if (!db) return;
+            
+            const result = db.exec(`
+                SELECT a.*, 
+                       (SELECT COUNT(*) FROM bids WHERE auction_id = a.id) as bid_count,
+                       (SELECT MAX(amount) FROM bids WHERE auction_id = a.id) as max_bid
+                FROM auctions a 
+                WHERE a.status = 'active'
+                ORDER BY a.created_at DESC
+            `);
+            
+            const auctionList = document.getElementById('auctionList');
+            
+            if (result.length === 0) {
+                auctionList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📦</div>
+                        <p>暂无正在拍卖的商品</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            auctionList.innerHTML = '';
+            const columns = result[0].columns;
+            
+            result[0].values.forEach(row => {
+                const auction = {};
+                columns.forEach((col, index) => {
+                    auction[col] = row[index];
+                });
+                
+                const card = document.createElement('div');
+                card.className = `auction-card ${auction.total_bids > 5 ? 'hot' : ''}`;
+                
+                const gradeClass = `grade-${auction.grade.toLowerCase()}`;
+                const isHot = auction.total_bids > 5;
+                const endTime = new Date(auction.end_time);
+                const isEndingSoon = endTime.getTime() - Date.now() < 3600000; // 1小时内结束
+                
+                let timeLeft = getTimeRemaining(endTime);
+                let countdownText = '';
+                
+                if (timeLeft.days > 0) {
+                    countdownText = `${timeLeft.days}天${timeLeft.hours}时`;
+                } else if (timeLeft.hours > 0) {
+                    countdownText = `${timeLeft.hours}时${timeLeft.minutes}分`;
+                } else {
+                    countdownText = `${timeLeft.minutes}分${timeLeft.seconds}秒`;
+                }
+                
+                card.innerHTML = `
+                    <div class="card-header">
+                        <span class="fruit-name">${auction.name}</span>
+                        <span class="card-badge ${isHot ? '' : 'normal'}">
+                            ${isHot ? '🔥 热门' : isEndingSoon ? '⏰ 即将结束' : '拍卖中'}
+                        </span>
+                    </div>
+                    
+                    <img src="${auction.image_url}" alt="${auction.name}" class="fruit-image">
+                    
+                    <div class="grade-display">
+                        <div class="grade-circle ${gradeClass}">${auction.grade}</div>
+                        <div class="grade-info">
+                            <div class="grade-label">品质分级</div>
+                            <div class="grade-value">${getGradeText(auction.grade)}级优质鲜果</div>
+                        </div>
+                    </div>
+                    
+                    <div class="data-charts">
+                        <div class="data-item">
+                            <div class="data-label">甜度</div>
+                            <div class="data-value good">${auction.sweetness}%</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">酸度</div>
+                            <div class="data-value warning">${auction.acidity}%</div>
+                        </div>
+                        <div class="data-item">
+                            <div class="data-label">硬度</div>
+                            <div class="data-value ${auction.firmness > 80 ? 'good' : 'warning'}">${auction.firmness}%</div>
+                        </div>
+                    </div>
+                    
+                    <div class="price-section">
+                        <div class="price-row">
+                            <span class="price-label">起拍价</span>
+                            <span class="price-value" style="color: #666; font-size: 16px;">
+                                ¥${auction.base_price.toFixed(2)} / kg
+                            </span>
+                        </div>
+                        <div class="price-row">
+                            <span class="price-label">当前价格</span>
+                            <span class="price-value">
+                                ¥${auction.current_price.toFixed(2)} / kg
+                            </span>
+                        </div>
+                        <div class="price-row">
+                            <span class="price-label">竞价次数</span>
+                            <span class="price-value" style="font-size: 14px; color: #666;">
+                                ${auction.total_bids}次竞价
+                            </span>
+                        </div>
+                        <div class="price-row" style="border-top: 1px solid rgba(0,0,0,0.1); padding-top: 8px;">
+                            <span class="price-label">${isEndingSoon ? '结束倒计时' : '距离结束'}</span>
+                            <span class="countdown" id="countdown-${auction.id}" ${isEndingSoon ? 'style="color: #dc3545;"' : ''}>
+                                ${countdownText}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="bid-section">
+                        <input type="number" 
+                               class="bid-input" 
+                               id="bid-amount-${auction.id}" 
+                               placeholder="输入出价金额" 
+                               min="${(auction.current_price + 0.1).toFixed(2)}" 
+                               step="0.1">
+                        <button class="bid-btn" onclick="placeBid(${auction.id})" ${!currentUser ? 'disabled' : ''}>
+                            ${currentUser ? '💰 竞价' : '🔒 登录后竞价'}
+                        </button>
+                    </div>
+                `;
+                
+                auctionList.appendChild(card);
+            });
+        }
+
+        function getGradeText(grade) {
+            const gradeMap = {
+                'A': '特等',
+                'B': '一等',
+                'C': '二等'
+            };
+            return gradeMap[grade] || '普通';
+        }
+
+        function getTimeRemaining(endTime) {
+            const now = new Date();
+            const diff = endTime.getTime() - now.getTime();
+            
+            if (diff <= 0) {
+                return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+            }
+            
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            return { days, hours, minutes, seconds };
+        }
+
+        function startCountdownTimer() {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+            
+            countdownInterval = setInterval(() => {
+                updateCountdowns();
+                checkAuctionEnds();
+            }, 1000);
+        }
+
+        function updateCountdowns() {
+            const countdownElements = document.querySelectorAll('[id^="countdown-"]');
+            
+            countdownElements.forEach(el => {
+                const auctionId = el.id.split('-')[1];
+                const result = db.exec(`SELECT end_time FROM auctions WHERE id = ?`, [auctionId]);
+                
+                if (result.length > 0) {
+                    const endTime = new Date(result[0].values[0][0]);
+                    const now = new Date();
+                    const diff = endTime.getTime() - now.getTime();
+                    
+                    if (diff <= 0) {
+                        el.textContent = '已结束';
+                        el.style.color = '#999';
+                    } else {
+                        const timeLeft = getTimeRemaining(endTime);
+                        let countdownText = '';
+                        
+                        if (timeLeft.days > 0) {
+                            countdownText = `${timeLeft.days}天${timeLeft.hours}时`;
+                        } else if (timeLeft.hours > 0) {
+                            countdownText = `${timeLeft.hours}时${timeLeft.minutes}分`;
+                        } else {
+                            countdownText = `${timeLeft.minutes}分${timeLeft.seconds}秒`;
+                        }
+                        
+                        el.textContent = countdownText;
+                        
+                        if (diff < 3600000) {
+                            el.style.color = '#dc3545';
+                        }
+                    }
+                }
+            });
+        }
+
+        function checkAuctionEnds() {
+            const result = db.exec(`
+                SELECT id FROM auctions 
+                WHERE status = 'active' AND end_time < CURRENT_TIMESTAMP
+            `);
+            
+            if (result.length > 0 && result[0].values.length > 0) {
+                result[0].values.forEach(row => {
+                    const auctionId = row[0];
+                    
+                    // 获取最高出价和出价用户
+                    const bidResult = db.exec(`
+                        SELECT user_id, amount FROM bids 
+                        WHERE auction_id = ? 
+                        ORDER BY amount DESC 
+                        LIMIT 1
+                    `, [auctionId]);
+                    
+                    let winnerId = null;
+                    let finalPrice = null;
+                    
+                    if (bidResult.length > 0 && bidResult[0].values.length > 0) {
+                        winnerId = bidResult[0].values[0][0];
+                        finalPrice = bidResult[0].values[0][1];
+                        
+                        // 更新用户成功次数
+                        db.run(`
+                            UPDATE users 
+                            SET success_count = success_count + 1 
+                            WHERE id = ?
+                        `, [winnerId]);
+                    } else {
+                        // 无人出价，结束拍卖
+                        finalPrice = db.exec(`
+                            SELECT base_price FROM auctions WHERE id = ?
+                        `, [auctionId])[0].values[0][0];
+                    }
+                    
+                    // 更新拍卖状态
+                    db.run(`
+                        UPDATE auctions 
+                        SET status = 'ended', winner_id = ?, current_price = ? 
+                        WHERE id = ?
+                    `, [winnerId, finalPrice, auctionId]);
+                    
+                    log(`🎊 拍卖 ${auctionId} 结束。中标用户：${winnerId}，价格：¥${finalPrice}`);
+                });
+                
+                // 刷新页面
+                renderAuctions();
+                updateStats();
+                if (currentUser) {
+                    updateUserInfo();
+                }
+            }
+        }
+
+        function placeBid(auctionId) {
+            if (!currentUser) {
+                showNotification('请先登录后再参与竞价', 'error');
+                switchTab('auth');
+                return;
+            }
+            
+            const bidInput = document.getElementById(`bid-amount-${auctionId}`);
+            const bidAmount = parseFloat(bidInput.value);
+            
+            if (!bidAmount || isNaN(bidAmount)) {
+                showNotification('请输入有效的出价金额', 'error');
+                bidInput.classList.add('error');
+                return;
+            }
+            
+            const result = db.exec(`SELECT * FROM auctions WHERE id = ?`, [auctionId]);
+            if (result.length === 0) {
+                showNotification('拍卖品不存在', 'error');
+                return;
+            }
+            
+            const auction = {};
+            result[0].columns.forEach((col, index) => {
+                auction[col] = result[0].values[0][index];
+            });
+            
+            if (bidAmount <= auction.current_price) {
+                showNotification(`出价必须高于当前价格 ¥${auction.current_price.toFixed(2)}`, 'error');
+                bidInput.classList.add('error');
+                return;
+            }
+            
+            if (bidAmount > currentUser.balance) {
+                showNotification('❌ 账户余额不足', 'error');
+                return;
+            }
+            
+            // 插入出价记录
+            db.run(`
+                INSERT INTO bids (auction_id, user_id, amount) 
+                VALUES (?, ?, ?)
+            `, [auctionId, currentUser.id, bidAmount]);
+            
+            // 更新拍卖品当前价格和竞价次数
+            db.run(`
+                UPDATE auctions 
+                SET current_price = ?, total_bids = total_bids + 1 
+                WHERE id = ?
+            `, [bidAmount, auctionId]);
+            
+            // 更新用户竞价次数
+            db.run(`
+                UPDATE users 
+                SET bid_count = bid_count + 1 
+                WHERE id = ?
+            `, [currentUser.id]);
+            
+            // 更新当前用户的竞价次数
+            currentUser.bid_count = (currentUser.bid_count || 0) + 1;
+            
+            showNotification(`💰 出价成功！当前价格 ¥${bidAmount.toFixed(2)}`, 'success');
+            
+            renderAuctions();
+            updateStats();
+            updateUserInfo();
+        }
+
+        function renderMyBids() {
+            if (!currentUser) return;
+            
+            const result = db.exec(`
+                SELECT a.*, b.amount, b.bid_time,
+                       (SELECT MAX(amount) FROM bids WHERE auction_id = a.id) as current_max_bid,
+                       (SELECT COUNT(*) FROM bids WHERE auction_id = a.id) as total_bids,
+                       CASE WHEN a.winner_id = ? THEN 1 ELSE 0 END as is_winner,
+                       a.end_time > CURRENT_TIMESTAMP as is_active
+                FROM bids b
+                JOIN auctions a ON b.auction_id = a.id
+                WHERE b.user_id = ?
+                ORDER BY b.bid_time DESC
+            `, [currentUser.id, currentUser.id]);
+            
+            const myBidsList = document.getElementById('myBidsList');
+            
+            if (result.length === 0) {
+                myBidsList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📝</div>
+                        <p>暂无竞价记录</p>
+                        <p style="font-size: 12px; margin-top: 8px; color: #666;">前往拍卖大厅参与竞价吧！</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            myBidsList.innerHTML = '';
+            const columns = result[0].columns;
+            
+            result[0].values.forEach(row => {
+                const bid = {};
+                columns.forEach((col, index) => {
+                    bid[col] = row[index];
+                });
+                
+                const isActive = bid.is_active === 1;
+                const isWinner = bid.is_winner === 1;
+                const hasOutbid = bid.current_max_bid > bid.amount;
+                
+                let statusClass = '';
+                let statusText = '';
+                
+                if (isActive) {
+                    if (bid.current_max_bid === bid.amount) {
+                        statusClass = 'active';
+                        statusText = '领先';
+                    } else {
+                        statusClass = 'active';
+                        statusText = '已被超越';
+                    }
+                } else {
+                    if (isWinner) {
+                        statusClass = 'won';
+                        statusText = '已中标';
+                    } else {
+                        statusClass = 'lost';
+                        statusText = '未中标';
+                    }
+                }
+                
+                const itemClass = isWinner ? 'won' : hasOutbid ? 'lost' : '';
+                
+                const item = document.createElement('div');
+                item.className = `my-bid-item ${itemClass}`;
+                
+                item.innerHTML = `
+                    <div class="my-bid-header">
+                        <span class="my-bid-name">${bid.name}</span>
+                        <span class="my-bid-status ${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="my-bid-details">
+                        <div class="my-bid-detail-item">
+                            <strong>我的出价</strong>
+                            <span style="font-weight: bold;">¥${bid.amount.toFixed(2)}</span>
+                        </div>
+                        <div class="my-bid-detail-item">
+                            <strong>当前最高价</strong>
+                            <span style="font-weight: bold; ${hasOutbid ? 'color: #f5576c' : bid.current_max_bid === bid.amount ? 'color: #28a745' : ''}">
+                                ¥${bid.current_max_bid.toFixed(2)}
+                            </span>
+                        </div>
+                        <div class="my-bid-detail-item">
+                            <strong>竞价次数</strong>
+                            <span>${bid.total_bids}次</span>
+                        </div>
+                        <div class="my-bid-detail-item">
+                            <strong>出价时间</strong>
+                            <span>${new Date(bid.bid_time).toLocaleString()}</span>
+                        </div>
+                        <div class="my-bid-detail-item">
+                            <strong>品质等级</strong>
+                            <span>${getGradeText(bid.grade)}级</span>
+                        </div>
+                        <div class="my-bid-detail-item">
+                            <strong>当前状态</strong>
+                            <span>${isActive ? '竞价中' : '已结束'}</span>
+                        </div>
+                    </div>
+                `;
+                
+                myBidsList.appendChild(item);
+            });
+        }
+
+        function updateStats() {
+            try {
+                const auctionResult = db.exec(`SELECT COUNT(*) FROM auctions WHERE status = 'active'`);
+                const totalAuctions = auctionResult.length > 0 ? auctionResult[0].values[0][0] : 0;
+                document.getElementById('totalAuctions').textContent = totalAuctions;
+                
+                const userResult = db.exec(`SELECT COUNT(*) FROM users`);
+                const totalUsers = userResult.length > 0 ? userResult[0].values[0][0] : 0;
+                document.getElementById('totalUsers').textContent = totalUsers;
+                
+                const bidResult = db.exec(`SELECT COUNT(*) FROM bids`);
+                const totalBids = bidResult.length > 0 ? bidResult[0].values[0][0] : 0;
+                document.getElementById('totalBids').textContent = totalBids;
+            } catch (error) {
+                log('更新统计数据失败: ' + error.message);
+            }
+        }
+
+        window.onload = initDB;
+    </script>
 </body>
 </html>
